@@ -1,6 +1,7 @@
 import { X } from "lucide-react";
-import { useEffect, type CSSProperties, type ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import { PALETTE_HUES, type Project, type Tag } from "../../../shared/schemas";
+import { useWindowKeydown } from "../hooks";
 
 export function Modal({
   title,
@@ -15,11 +16,7 @@ export function Modal({
   footer: ReactNode;
   size?: "sm" | "md" | "lg";
 }) {
-  useEffect(() => {
-    const onKey = (event: KeyboardEvent) => event.key === "Escape" && onClose();
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [onClose]);
+  useWindowKeydown((event) => event.key === "Escape" && onClose());
 
   return (
     <div className="backdrop" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>

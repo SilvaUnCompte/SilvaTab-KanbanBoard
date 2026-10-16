@@ -3,7 +3,7 @@ import { useMemo, useState } from "react";
 import Markdown from "react-markdown";
 import remarkBreaks from "remark-breaks";
 import { reachesTask, STATUS_LABELS, TASK_STATUSES, type Tag, type Task, type TaskStatus } from "../../../shared/schemas";
-import { useCreateTag, useDeleteTask, useSaveTask, type TaskDraft } from "../hooks";
+import { useCreateTag, useDeleteTask, useSaveTask, useWindowKeydown, type TaskDraft } from "../hooks";
 import { ChipPicker } from "./ChipPicker";
 import { ErrorBanner, Modal, pastelStyle, TagChip } from "./ui";
 
@@ -34,16 +34,28 @@ export function TaskDialog({
   });
   const [preview, setPreview] = useState(Boolean(task?.description));
   const [confirmDelete, setConfirmDelete] = useState(false);
+  // Incremented on each Ctrl+S save; used as key to replay the "Saved" fade-out.
+  const [saveCount, setSaveCount] = useState(0);
   const save = useSaveTask(projectId);
   const remove = useDeleteTask(projectId);
   const set = (patch: Partial<TaskDraft>) => setDraft((d) => ({ ...d, ...patch }));
 
   const byId = useMemo(() => new Map(tasks.map((t) => [t.id, t])), [tasks]);
 
+  const canSave = Boolean(draft.title.trim()) && !save.isPending;
+  const persist = () => save.mutateAsync({ ...draft, id: task?.id });
+
   const submit = async () => {
-    await save.mutateAsync({ ...draft, id: task?.id });
+    await persist();
     onClose();
   };
+
+  // Ctrl+S saves an edited task without closing the dialog, instead of the browser's "Save page".
+  useWindowKeydown((event) => {
+    if (!task || !(event.ctrlKey || event.metaKey) || event.key.toLowerCase() !== "s") return;
+    event.preventDefault();
+    if (canSave) persist().then(() => setSaveCount((n) => n + 1), () => {});
+  });
 
   const destroy = async () => {
     if (!task) return;
@@ -65,8 +77,9 @@ export function TaskDialog({
             </button>
           )}
           <span className="grow" />
+          {saveCount > 0 && <span key={saveCount} className="save-feedback text-small">Saved</span>}
           <button className="btn" onClick={onClose}>Cancel</button>
-          <button className="btn btn-primary" onClick={submit} disabled={!draft.title.trim() || save.isPending}>
+          <button className="btn btn-primary" onClick={submit} disabled={!canSave}>
             {task ? "Save" : "Create"}
           </button>
         </>

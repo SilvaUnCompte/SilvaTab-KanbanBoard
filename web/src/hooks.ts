@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient, type QueryKey } from "@tanstack/react-query";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   TASK_STATUSES,
   type Project,
@@ -176,6 +176,17 @@ function applyMove(tasks: Task[], id: string, status: TaskStatus, position: numb
   target.splice(Math.min(position, target.length), 0, { ...moving, status });
   const reordered = new Map(target.map((t, index) => [t.id, { ...t, position: index }]));
   return tasks.map((t) => reordered.get(t.id) ?? t);
+}
+
+/** Listens to window keydown events; `handler` can change on every render without re-subscribing. */
+export function useWindowKeydown(handler: (event: KeyboardEvent) => void) {
+  const latest = useRef(handler);
+  latest.current = handler;
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => latest.current(event);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
 }
 
 const readHash = () => window.location.hash.slice(1);

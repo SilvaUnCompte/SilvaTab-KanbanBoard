@@ -258,6 +258,9 @@ textarea.input { height: auto; padding: 8px; resize: vertical; font-family: var(
 .modal-header { height: 44px; padding: 0 8px 0 16px; border-bottom: 1px solid var(--border); flex: none; }
 .modal-body { flex: 1; min-height: 0; padding: 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 14px; }
 .modal-footer { padding: 12px 16px; border-top: 1px solid var(--border); flex: none; }
+/* Visible for 1s, then fades out over 0.5s. */
+.save-feedback { color: var(--success); animation: fade-out 1.5s forwards; }
+@keyframes fade-out { 66.7% { opacity: 1; } 100% { opacity: 0; } }
 
 /* ---------- Picker list ---------- */
 
