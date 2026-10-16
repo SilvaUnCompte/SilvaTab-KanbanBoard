@@ -14,6 +14,20 @@ export const STATUS_LABELS: Record<TaskStatus, string> = {
   done: "Done",
 };
 
+export const TASK_PRIORITIES = ["low", "medium", "high", "now"] as const;
+export const TaskPriority = z.enum(TASK_PRIORITIES);
+export type TaskPriority = z.infer<typeof TaskPriority>;
+
+export const PRIORITY_LABELS: Record<TaskPriority, string> = {
+  low: "Low",
+  medium: "Medium",
+  high: "High",
+  now: "NOW!",
+};
+
+/** Also applied to tasks created before priorities existed. */
+export const DEFAULT_PRIORITY: TaskPriority = "medium";
+
 export const ObjectIdString = z.string().regex(/^[a-f0-9]{24}$/i, "Invalid id");
 
 const idList = z.array(ObjectIdString);
@@ -79,6 +93,7 @@ const taskFields = {
   description: z.string().max(50_000).describe("Task details / specs, Markdown supported"),
   blockedBy: idList.describe("Ids of tasks (same project) that must be done before this one"),
   tags: idList.describe("Ids of tags of the same project"),
+  priority: TaskPriority.describe('Urgency: "low", "medium", "high" or "now" (drop everything else)'),
 };
 
 export const TaskCreateInput = z.object({
@@ -87,6 +102,7 @@ export const TaskCreateInput = z.object({
   status: TaskStatus.default("todo").describe("Initial column"),
   blockedBy: taskFields.blockedBy.default([]),
   tags: taskFields.tags.default([]),
+  priority: taskFields.priority.default(DEFAULT_PRIORITY),
 });
 export type TaskCreateInput = z.input<typeof TaskCreateInput>;
 
@@ -95,6 +111,7 @@ export const TaskUpdateInput = z.object({
   description: taskFields.description.optional(),
   blockedBy: taskFields.blockedBy.optional().describe("Replaces the whole blocker list"),
   tags: taskFields.tags.optional().describe("Replaces the whole tag list"),
+  priority: taskFields.priority.optional(),
 });
 export type TaskUpdateInput = z.infer<typeof TaskUpdateInput>;
 
@@ -110,6 +127,7 @@ export interface Task {
   title: string;
   description: string;
   status: TaskStatus;
+  priority: TaskPriority;
   position: number;
   blockedBy: string[];
   tags: string[];

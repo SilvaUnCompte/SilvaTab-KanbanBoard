@@ -8,6 +8,7 @@ import {
   tagKey,
   TaskCreateInput,
   TaskMoveInput,
+  TaskPriority,
   TaskStatus,
   TaskUpdateInput,
   unresolvedBlockers,
@@ -17,7 +18,8 @@ import type { Services } from "../services/index.js";
 
 const INSTRUCTIONS = `Silva's Tab is a kanban board. Each project has three columns: "todo", "doing" (On doing) and "done".
 - Call list_projects first to get project ids.
-- A task has a title, a Markdown description (use it for specs), tags and "blockedBy": tasks that must be done first.
+- A task has a title, a Markdown description (use it for specs), tags, a priority (low, medium, high, now) and "blockedBy": tasks that must be done first.
+- Use list_tasks with the priority filter to find the most urgent work (e.g. ["now", "high"]).
 - Tags are given by label; unknown labels are created automatically. Call list_tags to reuse existing ones.
 - When you start working on a task move it to "doing", and to "done" once finished.
 - Prefer create_tasks with blockedByIndexes to create a whole plan with its dependencies in one call.`;
@@ -49,7 +51,7 @@ function describeTask(task: Task, { byId, tagLabels }: ProjectContext, withDescr
 }
 
 export function createMcpServer({ projects, tags, tasks }: Services): McpServer {
-  const server = new McpServer({ name: "silvas-tab", version: "1.1.0" }, { instructions: INSTRUCTIONS });
+  const server = new McpServer({ name: "silvas-tab", version: "1.2.0" }, { instructions: INSTRUCTIONS });
 
   /** Registers a tool whose result is serialized as JSON and whose errors are reported to the model. */
   function tool<Shape extends z.ZodRawShape>(
@@ -103,13 +105,15 @@ export function createMcpServer({ projects, tags, tasks }: Services): McpServer 
       projectId,
       status: TaskStatus.optional().describe("Only return this column"),
       tag: TagLabel.optional().describe("Only return tasks with this tag label"),
+      priority: z.array(TaskPriority).min(1).optional().describe("Only return tasks with one of these priorities"),
       includeDescription: z.boolean().default(false).describe("Include full descriptions (can be long)"),
     },
-    async ({ projectId, status, tag, includeDescription }) => {
+    async ({ projectId, status, tag, priority, includeDescription }) => {
       const context = await loadContext(projectId);
       const columns = Object.fromEntries(TaskStatus.options.map((s) => [s, [] as unknown[]]));
       for (const task of context.all) {
         if (status && task.status !== status) continue;
+        if (priority && !priority.includes(task.priority)) continue;
         const described = describeTask(task, context, includeDescription);
         if (tag && !described.tags.some((label) => tagKey(label) === tagKey(tag))) continue;
         columns[task.status].push(described);
@@ -161,7 +165,7 @@ export function createMcpServer({ projects, tags, tasks }: Services): McpServer 
 
   tool(
     "update_task",
-    "Update the title, description (specs), tags and/or blockers of a task. Omitted fields are left unchanged.",
+    "Update the title, description (specs), priority, tags and/or blockers of a task. Omitted fields are left unchanged.",
     { taskId, ...TaskUpdateInput.shape, tags: tagLabels.optional().describe("Replaces the whole tag list") },
     async ({ taskId, tags: labels, ...input }) => {
       const { projectId } = await tasks.get(taskId);

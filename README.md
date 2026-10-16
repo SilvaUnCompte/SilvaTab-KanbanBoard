@@ -17,6 +17,7 @@ A minimalist kanban board for personal projects, that **Claude can read and upda
 - Three columns: **TODO**, **On doing** and **Done**. Drag & drop a card to move it.
 - Write the details of a task in Markdown (lists, headings, code…), with a live preview.
 - Say which tasks must be finished first with **Blocked by**: the card shows a red *Blocked by* badge until they are done.
+- Give each task a priority (**Low**, **Medium**, **High** or **NOW!**), shown as an icon in the bottom-right corner of its card.
 
 <img src="img/edit.png" width="500">
 
@@ -38,7 +39,7 @@ Connect Claude to the board and just ask:
 - *"Split this feature into tasks, with their dependencies."*
 - *"Take the next ticket in TODO and do it."*
 
-Claude can list projects and tasks, filter them by column or tag, create tasks (with tags and blockers), edit them and move them between columns. The board refreshes by itself, so its changes show up live.
+Claude can list projects and tasks, filter them by column, tag or priority, create tasks (with tags and blockers), edit them and move them between columns. The board refreshes by itself, so its changes show up live.
 
 ### On your phone too
 

@@ -8,6 +8,7 @@ import {
   type Task,
   type TagUpdateInput,
   type TaskMoveInput,
+  type TaskPriority,
   type TaskStatus,
 } from "../../shared/schemas";
 import { api } from "./api";
@@ -109,7 +110,14 @@ export const useTasks = (projectId: string, paused = false) =>
     refetchInterval: paused ? false : BOARD_REFRESH_MS,
   });
 
-export type TaskDraft = { title: string; description: string; blockedBy: string[]; tags: string[]; status: TaskStatus };
+export type TaskDraft = {
+  title: string;
+  description: string;
+  blockedBy: string[];
+  tags: string[];
+  status: TaskStatus;
+  priority: TaskPriority;
+};
 
 export const useSaveTask = (projectId: string) =>
   useInvalidatingMutation(

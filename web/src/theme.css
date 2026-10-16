@@ -34,6 +34,10 @@
   --status-todo: var(--text-secondary);
   --status-doing: var(--accent);
   --status-done: var(--success);
+  --priority-low: var(--accent);
+  --priority-medium: var(--text-secondary);
+  --priority-high: var(--warning);
+  --priority-now: var(--danger);
 
   /* Metrics */
   --radius-sm: 4px;
@@ -68,6 +72,7 @@ button, input, textarea, select { font: inherit; color: inherit; }
 .row { display: flex; align-items: center; }
 .col { display: flex; flex-direction: column; }
 .grow { flex: 1; min-width: 0; }
+.align-end { align-items: flex-end; }
 .gap-4 { gap: 4px; }
 .gap-8 { gap: 8px; }
 .gap-12 { gap: 12px; }
@@ -239,6 +244,8 @@ textarea.input { height: auto; padding: 8px; resize: vertical; font-family: var(
 .card-title { flex: 1; min-width: 0; font-weight: 600; overflow-wrap: anywhere; }
 .card-tags { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 4px; max-width: 50%; padding-top: 1px; }
 .card[data-status="done"] .card-title { color: var(--text-secondary); text-decoration: line-through; }
+.priority { display: inline-flex; flex: none; }
+.card-priority { margin-left: auto; }
 .card-desc {
   color: var(--text-secondary); font-size: 12px; white-space: pre-line; overflow-wrap: anywhere;
 }

@@ -1,5 +1,6 @@
 import { ObjectId } from "mongodb";
 import {
+  DEFAULT_PRIORITY,
   reachesTask,
   TASK_STATUSES,
   TaskCreateInput,
@@ -21,6 +22,7 @@ const toTask = (doc: TaskDoc): Task => ({
   title: doc.title,
   description: doc.description,
   status: doc.status,
+  priority: doc.priority ?? DEFAULT_PRIORITY,
   position: doc.position,
   blockedBy: doc.blockedBy.map((id) => id.toHexString()),
   tags: (doc.tags ?? []).map((id) => id.toHexString()),
@@ -87,6 +89,7 @@ export class TaskService {
         title: input.title,
         description: input.description,
         status: input.status,
+        priority: input.priority,
         position: added[input.status]++,
         blockedBy: [...uniqueObjectIds(input.blockedBy), ...batchBlockers],
         tags: uniqueObjectIds(input.tags),
@@ -110,6 +113,7 @@ export class TaskService {
     const $set: Partial<TaskDoc> = { updatedAt: new Date() };
     if (input.title !== undefined) $set.title = input.title;
     if (input.description !== undefined) $set.description = input.description;
+    if (input.priority !== undefined) $set.priority = input.priority;
     if (input.blockedBy !== undefined) {
       const blockerIds = [...new Set(input.blockedBy)];
       await this.assertValidBlockers(current, blockerIds);

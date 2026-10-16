@@ -2,7 +2,18 @@ import { Lock, Tag as TagIcon } from "lucide-react";
 import { useMemo, useState } from "react";
 import Markdown from "react-markdown";
 import remarkBreaks from "remark-breaks";
-import { reachesTask, STATUS_LABELS, TASK_STATUSES, type Tag, type Task, type TaskStatus } from "../../../shared/schemas";
+import {
+  DEFAULT_PRIORITY,
+  PRIORITY_LABELS,
+  reachesTask,
+  STATUS_LABELS,
+  TASK_PRIORITIES,
+  TASK_STATUSES,
+  type Tag,
+  type Task,
+  type TaskPriority,
+  type TaskStatus,
+} from "../../../shared/schemas";
 import { useCreateTag, useDeleteTask, useSaveTask, useWindowKeydown, type TaskDraft } from "../hooks";
 import { ChipPicker } from "./ChipPicker";
 import { ErrorBanner, Modal, pastelStyle, TagChip } from "./ui";
@@ -31,6 +42,7 @@ export function TaskDialog({
     blockedBy: task?.blockedBy ?? [],
     tags: task?.tags ?? [],
     status: task?.status ?? defaultStatus,
+    priority: task?.priority ?? DEFAULT_PRIORITY,
   });
   const [preview, setPreview] = useState(Boolean(task?.description));
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -123,7 +135,19 @@ export function TaskDialog({
         )}
       </div>
 
-      <TagsField projectId={projectId} tags={tags} value={draft.tags} onChange={(ids) => set({ tags: ids })} />
+      <div className="row gap-12 align-end">
+        <div className="grow">
+          <TagsField projectId={projectId} tags={tags} value={draft.tags} onChange={(ids) => set({ tags: ids })} />
+        </div>
+        <label className="field" style={{ width: "15%", minWidth: 90 }}>
+          <span className="text-label">Priority</span>
+          <select className="input" value={draft.priority} onChange={(e) => set({ priority: e.target.value as TaskPriority })}>
+            {TASK_PRIORITIES.map((p) => (
+              <option key={p} value={p}>{PRIORITY_LABELS[p]}</option>
+            ))}
+          </select>
+        </label>
+      </div>
 
       <BlockersField
         selfId={task?.id}

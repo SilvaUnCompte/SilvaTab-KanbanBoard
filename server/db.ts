@@ -1,5 +1,5 @@
 import { MongoClient, type ObjectId } from "mongodb";
-import type { TaskStatus } from "../shared/schemas.js";
+import type { TaskPriority, TaskStatus } from "../shared/schemas.js";
 
 export interface ProjectDoc {
   _id: ObjectId;
@@ -23,6 +23,8 @@ export interface TaskDoc {
   blockedBy: ObjectId[];
   /** Missing on tasks created before tags existed. */
   tags?: ObjectId[];
+  /** Missing on tasks created before priorities existed. */
+  priority?: TaskPriority;
   createdAt: Date;
   updatedAt: Date;
 }

@@ -13,7 +13,7 @@ import {
 import { groupByStatus, matchesFilter, positionInColumn, useMoveTask, useTags, useTasks, type TaskFilter } from "../hooks";
 import { TagsDialog } from "./TagsDialog";
 import { statusColor, TaskDialog } from "./TaskDialog";
-import { ErrorBanner, ProjectAvatar, TagChip } from "./ui";
+import { ErrorBanner, PriorityIcon, ProjectAvatar, TagChip } from "./ui";
 
 type DialogState = { kind: "newTask"; status?: TaskStatus } | { kind: "tags" } | null;
 
@@ -182,20 +182,19 @@ function TaskCardContent({
         )}
       </div>
       {task.description && <div className="card-desc clamp-2">{task.description}</div>}
-      {(pending.length > 0 || blocks > 0) && (
-        <div className="row gap-4 wrap">
-          {pending.length > 0 && (
-            <span className="badge badge-danger" title={pending.map((t) => t.title).join("\n")}>
-              <Lock size={11} /> Blocked by {pending.length}
-            </span>
-          )}
-          {blocks > 0 && (
-            <span className="badge">
-              <Link2 size={11} /> Blocks {blocks}
-            </span>
-          )}
-        </div>
-      )}
+      <div className="row gap-4 wrap">
+        {pending.length > 0 && (
+          <span className="badge badge-danger" title={pending.map((t) => t.title).join("\n")}>
+            <Lock size={11} /> Blocked by {pending.length}
+          </span>
+        )}
+        {blocks > 0 && (
+          <span className="badge">
+            <Link2 size={11} /> Blocks {blocks}
+          </span>
+        )}
+        <PriorityIcon priority={task.priority} className="card-priority" />
+      </div>
     </>
   );
 }

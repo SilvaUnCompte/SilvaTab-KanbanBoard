@@ -1,6 +1,6 @@
-import { X } from "lucide-react";
+import { ChevronDown, ChevronUp, Equal, Flame, X, type LucideIcon } from "lucide-react";
 import type { CSSProperties, ReactNode } from "react";
-import { PALETTE_HUES, type Project, type Tag } from "../../../shared/schemas";
+import { PALETTE_HUES, PRIORITY_LABELS, type Project, type Tag, type TaskPriority } from "../../../shared/schemas";
 import { useWindowKeydown } from "../hooks";
 
 export function Modal({
@@ -87,6 +87,18 @@ export function TagChip({ tag, small = false }: { tag: Tag; small?: boolean }) {
   return (
     <span className={`tag ${small ? "tag-sm" : ""}`} style={pastelStyle(tag.hue)}>
       {tag.label}
+    </span>
+  );
+}
+
+const PRIORITY_ICONS: Record<TaskPriority, LucideIcon> = { low: ChevronDown, medium: Equal, high: ChevronUp, now: Flame };
+
+export function PriorityIcon({ priority, className = "" }: { priority: TaskPriority; className?: string }) {
+  const Icon = PRIORITY_ICONS[priority];
+  const label = `Priority: ${PRIORITY_LABELS[priority]}`;
+  return (
+    <span className={`priority ${className}`} style={{ color: `var(--priority-${priority})` }} title={label} aria-label={label}>
+      <Icon size={14} />
     </span>
   );
 }
