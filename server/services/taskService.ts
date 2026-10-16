@@ -1,6 +1,7 @@
 import { ObjectId } from "mongodb";
 import {
   reachesTask,
+  TASK_STATUSES,
   TaskCreateInput,
   type Task,
   type TaskMoveInput,
@@ -55,13 +56,14 @@ export class TaskService {
   }
 
   /**
-   * Creates several tasks at once. Items can only be blocked by existing tasks or by earlier
-   * items of the batch, which makes dependency cycles impossible at creation time.
+   * Creates several tasks at once, at the top of their column (in batch order). Items can only be blocked
+   * by existing tasks or by earlier items of the batch, which makes dependency cycles impossible at creation time.
    */
   async createMany(projectId: string, inputs: BatchTaskInput[]): Promise<Task[]> {
     await this.projects.get(projectId);
     const projectOid = toObjectId(projectId);
-    const { existingIds, positions } = await this.columnsState(projectOid);
+    const existingIds = await this.taskIds(projectOid);
+    const added: Record<TaskStatus, number> = { todo: 0, doing: 0, done: 0 };
     const now = new Date();
 
     const ids = inputs.map(() => new ObjectId());
@@ -85,7 +87,7 @@ export class TaskService {
         title: input.title,
         description: input.description,
         status: input.status,
-        position: positions[input.status]++,
+        position: added[input.status]++,
         blockedBy: [...uniqueObjectIds(input.blockedBy), ...batchBlockers],
         tags: uniqueObjectIds(input.tags),
         createdAt: now,
@@ -93,7 +95,13 @@ export class TaskService {
       };
     });
 
-    if (docs.length) await this.db.tasks.insertMany(docs);
+    if (!docs.length) return [];
+    await Promise.all(
+      TASK_STATUSES.filter((status) => added[status]).map((status) =>
+        this.db.tasks.updateMany({ projectId: projectOid, status }, { $inc: { position: added[status] } }),
+      ),
+    );
+    await this.db.tasks.insertMany(docs);
     return docs.map(toTask);
   }
 
@@ -139,12 +147,9 @@ export class TaskService {
     return doc;
   }
 
-  /** Ids of the project's tasks and the next free position of each column. */
-  private async columnsState(projectId: ObjectId) {
-    const docs = await this.db.tasks.find({ projectId }, { projection: { _id: 1, status: 1, position: 1 } }).toArray();
-    const positions: Record<TaskStatus, number> = { todo: 0, doing: 0, done: 0 };
-    for (const { status, position } of docs) positions[status] = Math.max(positions[status], position + 1);
-    return { existingIds: new Set(docs.map((d) => d._id.toHexString())), positions };
+  private async taskIds(projectId: ObjectId): Promise<Set<string>> {
+    const docs = await this.db.tasks.find({ projectId }, { projection: { _id: 1 } }).toArray();
+    return new Set(docs.map((d) => d._id.toHexString()));
   }
 
   /** Blockers must belong to the same project and must not create a dependency cycle. */

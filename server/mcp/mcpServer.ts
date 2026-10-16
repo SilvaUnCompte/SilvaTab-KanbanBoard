@@ -132,7 +132,7 @@ export function createMcpServer({ projects, tags, tasks }: Services): McpServer 
 
   tool(
     "create_tasks",
-    "Create one or several tasks in a project. Use blockedByIndexes to make a task depend on earlier tasks of the same call.",
+    "Create one or several tasks in a project, added at the top of their column. Use blockedByIndexes to make a task depend on earlier tasks of the same call.",
     {
       projectId,
       tasks: z
