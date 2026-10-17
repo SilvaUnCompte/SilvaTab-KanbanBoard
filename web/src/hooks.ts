@@ -199,9 +199,13 @@ export function useWindowKeydown(handler: (event: KeyboardEvent) => void) {
 
 const readHash = () => window.location.hash.slice(1);
 
+/** Reserved second hash segment for the phone projects panel (task ids are ObjectIds, so no clash). */
+const PROJECTS_PANEL = "projects";
+
 /**
- * Selection mirrored in the URL hash as `projectId/taskId`: a refresh keeps it, and opening a task
- * pushes a history entry so the browser's Back button closes the task instead of leaving the app.
+ * Selection mirrored in the URL hash as `projectId/taskId` (or `projectId/projects` for the phone projects panel):
+ * a refresh keeps it, and opening an overlay (task or panel) pushes a history entry so the browser's Back button
+ * closes it instead of leaving the app.
  */
 export function useHashRoute() {
   const [hash, setHash] = useState(readHash);
@@ -210,22 +214,36 @@ export function useHashRoute() {
     window.addEventListener("hashchange", onChange);
     return () => window.removeEventListener("hashchange", onChange);
   }, []);
-  const [projectId = null, taskId = null] = hash ? hash.split("/") : [];
+  const [first, second] = hash.split("/");
+  const projectId = first || null;
+  const projectsOpen = second === PROJECTS_PANEL;
+  const taskId = projectsOpen ? null : second || null;
 
   const go = useCallback((next: string, push = false) => {
     const url = next ? `#${next}` : window.location.pathname;
-    if (push) history.pushState({ task: true }, "", url);
+    if (push) history.pushState({ overlay: true }, "", url);
     else history.replaceState(null, "", url);
     setHash(next);
   }, []);
 
-  const selectProject = useCallback((id: string | null) => go(id ?? ""), [go]);
-  const openTask = useCallback((id: string) => go(`${projectId}/${id}`, true), [go, projectId]);
-  // Popping our own entry keeps Forward from reopening the task; a task opened from a shared link has none to pop.
-  const closeTask = useCallback(() => {
-    if (history.state?.task) history.back();
-    else go(projectId ?? "");
-  }, [go, projectId]);
+  // Popping our own entry keeps Forward from reopening the overlay; one opened from a shared link has none to pop.
+  const closeOverlayTo = useCallback(
+    (next: string) => {
+      if (!history.state?.overlay) return go(next);
+      window.addEventListener("popstate", () => go(next), { once: true });
+      history.back();
+    },
+    [go],
+  );
 
-  return { projectId, taskId, selectProject, openTask, closeTask };
+  // From the phone panel, the panel entry becomes the new project's, so Back returns to the previous project.
+  const selectProject = useCallback(
+    (id: string | null) => (projectsOpen && id === projectId ? closeOverlayTo : go)(id ?? ""),
+    [go, closeOverlayTo, projectsOpen, projectId],
+  );
+  const openTask = useCallback((id: string) => go(`${projectId}/${id}`, true), [go, projectId]);
+  const openProjects = useCallback(() => go(`${projectId ?? ""}/${PROJECTS_PANEL}`, true), [go, projectId]);
+  const closeOverlay = useCallback(() => closeOverlayTo(projectId ?? ""), [closeOverlayTo, projectId]);
+
+  return { projectId, taskId, projectsOpen, selectProject, openTask, openProjects, closeOverlay };
 }

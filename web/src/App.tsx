@@ -12,7 +12,8 @@ export function App() {
 
 function Workspace() {
   const { data: projects = [], isPending } = useProjects();
-  const { projectId: selectedId, taskId, selectProject: setSelectedId, openTask, closeTask } = useHashRoute();
+  const { projectId: selectedId, taskId, projectsOpen, selectProject: setSelectedId, openTask, openProjects, closeOverlay } =
+    useHashRoute();
   const selected = projects.find((p) => p.id === selectedId);
 
   // Fall back to the first project when nothing (or a deleted project) is selected.
@@ -22,9 +23,16 @@ function Workspace() {
 
   return (
     <div className="app">
-      <Sidebar projects={projects} selectedId={selectedId} onSelect={setSelectedId} />
+      <Sidebar
+        projects={projects}
+        selectedId={selectedId}
+        onSelect={setSelectedId}
+        open={projectsOpen}
+        onOpen={openProjects}
+        onClose={closeOverlay}
+      />
       {selected ? (
-        <Board key={selected.id} project={selected} openTaskId={taskId} onOpenTask={openTask} onCloseTask={closeTask} />
+        <Board key={selected.id} project={selected} openTaskId={taskId} onOpenTask={openTask} onCloseTask={closeOverlay} />
       ) : (
         <main className="main">
           <div className="center grow text-secondary">{isPending ? "" : "Create a project to get started"}</div>

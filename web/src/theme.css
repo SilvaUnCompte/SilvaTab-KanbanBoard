@@ -200,6 +200,9 @@ textarea.input { height: auto; padding: 8px; resize: vertical; font-family: var(
 .sidebar { background: var(--bg-panel); border-right: 1px solid var(--bg-editor); min-height: 0; }
 .sidebar-header { height: 44px; padding: 0 8px 0 14px; border-bottom: 1px solid var(--border); }
 .sidebar-footer { height: 36px; padding: 0 14px; border-top: 1px solid var(--border); flex: none; }
+.projects-bar { padding: 12px 8px 6px 14px; }
+.sidebar-panel { min-height: 0; }
+.unfold-btn, .sidebar-backdrop, .show-mobile { display: none; }
 .brand { font-weight: 600; font-size: 14px; }
 .brand-mark { width: 20px; height: 20px; border-radius: 5px; background: linear-gradient(135deg, #3574f0, #5fad65); }
 
@@ -298,11 +301,31 @@ textarea.input { height: auto; padding: 8px; resize: vertical; font-family: var(
 /* Denser layout on phones so more of the board fits on screen. */
 @media (max-width: 760px) {
   body { font-size: 12px; }
-  .hide-mobile { display: none; }
 
-  .app { grid-template-columns: 1fr; grid-template-rows: auto minmax(0, 1fr); }
-  .sidebar { max-height: 26dvh; border-right: none; border-bottom: 1px solid var(--border); }
-  .sidebar-header { height: 36px; }
+  .hide-mobile, .sidebar-header { display: none; }
+  .show-mobile { display: inline-flex; }
+
+  /* The board takes the full height; the project list unfolds over it from the "Projects" bar. */
+  .app { grid-template-columns: 1fr; grid-template-rows: auto minmax(0, 1fr); --bar-height: 40px; }
+  .sidebar { position: relative; z-index: 5; border-right: none; border-bottom: 1px solid var(--border); }
+  .projects-bar { position: relative; z-index: 2; height: var(--bar-height); padding: 0 8px 0 14px; background: var(--bg-panel); }
+  .sidebar[data-open="false"] .new-project-btn, .sidebar[data-open="true"] .unfold-btn { display: none; }
+  .unfold-btn { display: inline-grid; }
+  /* Stretched over the whole bar so tapping anywhere on it unfolds the list. */
+  .unfold-btn::after { content: ""; position: absolute; inset: 0; }
+  .sidebar-panel, .sidebar-backdrop { position: absolute; top: 100%; left: 0; right: 0; transition: 0.5s ease; }
+  .sidebar-panel {
+    z-index: 1; height: calc(200dvh / 3 - var(--bar-height));
+    background: var(--bg-panel); border-bottom: 1px solid var(--border);
+    transform: translateY(-100%); visibility: hidden; transition-property: transform, visibility;
+  }
+  .sidebar-backdrop {
+    display: block; height: calc(100dvh - var(--bar-height));
+    background: rgb(0 0 0 / 50%); opacity: 0; pointer-events: none; transition-property: opacity;
+  }
+  .sidebar[data-open="true"] .sidebar-panel { transform: none; visibility: visible; }
+  .sidebar[data-open="true"] .sidebar-backdrop { opacity: 1; pointer-events: auto; }
+  .sidebar-footer { justify-content: space-between; }
   .project-item { height: 30px; margin-bottom: 2px; }
 
   /* Search and tag filter wrap onto a second line instead of pushing the toolbar off screen. */
