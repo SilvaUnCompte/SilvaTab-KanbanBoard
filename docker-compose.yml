@@ -8,6 +8,7 @@ services:
     environment:
       MONGO_URL: mongodb://mongo:27017
       SILVA_PASSWORD: ${SILVA_PASSWORD:?Set SILVA_PASSWORD in .env}
+      ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
       MCP_TOKEN: ${MCP_TOKEN:?Set MCP_TOKEN in .env}
     depends_on:
       mongo:

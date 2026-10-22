@@ -13,7 +13,7 @@ import { mcpRoutes } from "./routes/mcp.js";
 import { createServices } from "./services/index.js";
 
 const db = await connectDb(config.mongoUrl, config.mongoDb);
-const services = createServices(db);
+const services = createServices(db, { username: config.adminUsername, password: config.password });
 
 const app = Fastify({ logger: true, trustProxy: true, bodyLimit: 5 * 1024 * 1024 });
 
@@ -30,7 +30,7 @@ app.setErrorHandler((error, _req, reply) => {
 });
 
 app.get("/healthz", async () => ({ ok: true }));
-await app.register(apiRoutes, { prefix: "/api", services, password: config.password });
+await app.register(apiRoutes, { prefix: "/api", services });
 await app.register(mcpRoutes, { prefix: "/mcp", services, token: config.mcpToken });
 
 // Serve the built SPA when present (production); in dev Vite serves it.

@@ -1,6 +1,6 @@
 import { ArchiveRestore } from "lucide-react";
 import { useArchivedProjects, useUpdateProject } from "../hooks";
-import { ErrorBanner, Modal, ProjectAvatar } from "./ui";
+import { CloseFooter, ErrorBanner, Modal, ProjectAvatar } from "./ui";
 
 /** Lists archived projects so they can be restored. */
 export function ArchiveDialog({ onClose, onRestored }: { onClose: () => void; onRestored: (id: string) => void }) {
@@ -13,7 +13,7 @@ export function ArchiveDialog({ onClose, onRestored }: { onClose: () => void; on
   };
 
   return (
-    <Modal size="sm" title="Archived projects" onClose={onClose} footer={<><span className="grow" /><button className="btn" onClick={onClose}>Close</button></>}>
+    <Modal size="sm" title="Archived projects" onClose={onClose} footer={<CloseFooter onClose={onClose} />}>
       {!isPending && projects.length === 0 && <div className="empty">No archived project</div>}
       <div className="col gap-4">
         {projects.map((project) => (

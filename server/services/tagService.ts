@@ -24,6 +24,10 @@ export class
     return docs.map(toTag);
   }
 
+  async get(id: string): Promise<Tag> {
+    return toTag(await this.findDoc(id));
+  }
+
   async create(projectId: string, { label, hue }: TagCreateInput): Promise<Tag> {
     await this.projects.get(projectId);
     const projectOid = toObjectId(projectId);

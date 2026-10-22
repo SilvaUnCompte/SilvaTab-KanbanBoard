@@ -1,17 +1,20 @@
 import { useEffect } from "react";
 import { Board } from "./components/Board";
-import { LoginScreen } from "./components/LoginScreen";
+import { LoginScreen, PasswordScreen } from "./components/LoginScreen";
 import { Sidebar } from "./components/Sidebar";
-import { useHashRoute, useProjects, useSession } from "./hooks";
+import { useCurrentUser, useHashRoute, useProjects, useSession } from "./hooks";
 
 export function App() {
   const session = useSession();
   if (session.isPending) return null;
-  return session.data?.authenticated ? <Workspace /> : <LoginScreen />;
+  const user = session.data?.user;
+  if (!user) return <LoginScreen />;
+  return user.mustChangePassword ? <PasswordScreen /> : <Workspace />;
 }
 
 function Workspace() {
   const { data: projects = [], isPending } = useProjects();
+  const user = useCurrentUser();
   const { projectId: selectedId, taskId, projectsOpen, selectProject: setSelectedId, openTask, openProjects, closeOverlay } =
     useHashRoute();
   const selected = projects.find((p) => p.id === selectedId);
@@ -35,7 +38,7 @@ function Workspace() {
         <Board key={selected.id} project={selected} openTaskId={taskId} onOpenTask={openTask} onCloseTask={closeOverlay} />
       ) : (
         <main className="main">
-          <div className="center grow text-secondary">{isPending ? "" : "Create a project to get started"}</div>
+          <div className="center grow text-secondary">{isPending ? "" : user?.isAdmin ? "Create a project to get started" : "No project is shared with you yet"}</div>
         </main>
       )}
     </div>

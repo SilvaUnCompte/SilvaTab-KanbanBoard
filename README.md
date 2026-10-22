@@ -31,6 +31,13 @@ A minimalist kanban board for personal projects, that **Claude can read and upda
 
 <img src="img/search.png" width="500">
 
+### Share with other people
+
+- Sign in as **admin** to create, edit, archive and reorder projects, and to manage accounts from the **Accounts** button.
+- Create an account by typing a username: a password is generated and shown once. The user replaces it at first sign-in.
+- For each account, choose per project whether it is hidden, read only or editable. New projects are hidden from everybody but the admin.
+- Reset a forgotten password the same way: the user is signed out and picks a new one at next sign-in.
+
 ### Let Claude work with you
 
 Connect Claude to the board and just ask:
@@ -49,7 +56,7 @@ The layout adapts to small screens: swipe between columns, scroll the project li
 
 ## Installation
 
-Silva's Tab runs with Docker (one app container + MongoDB). It is protected by a single password, no account needed.
+Silva's Tab runs with Docker (one app container + MongoDB). Sign in with the `admin` account and the `SILVA_PASSWORD` password, then create accounts for the other people from the app.
 
 ```bash
 cp .env.example .env        # set SILVA_PASSWORD and MCP_TOKEN (openssl rand -hex 32)
@@ -60,7 +67,8 @@ Open `http://localhost:3000`. Set `BIND_ADDRESS=0.0.0.0` in `.env` to reach it f
 
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
-| `SILVA_PASSWORD` | yes | | Password of the web interface. Changing it logs everybody out. |
+| `SILVA_PASSWORD` | yes | | Password of the admin account. Changing it logs everybody out. |
+| `ADMIN_USERNAME` | no | `admin` | Login of the admin account. |
 | `MCP_TOKEN` | yes | | Secret used by Claude to connect. |
 | `MONGO_URL` | no | `mongodb://localhost:27017` | |
 | `MONGO_DB` | no | `silvas-tab` | |
@@ -73,7 +81,7 @@ To put it online with HTTPS (Debian + nginx), follow [DEPLOY.md](DEPLOY.md).
 
 ### Connect Claude
 
-The board exposes an MCP server at `/mcp`, authenticated with `MCP_TOKEN`.
+The board exposes an MCP server at `/mcp`, authenticated with `MCP_TOKEN`. It has the same rights as the admin on every project.
 
 **Claude Code**
 

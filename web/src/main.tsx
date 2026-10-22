@@ -14,7 +14,7 @@ import { keys } from "./hooks";
 /** Any 401 means the session expired: go back to the login screen. */
 const onError = (error: Error) => {
   if (error instanceof ApiError && error.status === 401) {
-    queryClient.setQueryData(keys.session, { authenticated: false });
+    queryClient.setQueryData(keys.session, { user: null });
   }
 };
 

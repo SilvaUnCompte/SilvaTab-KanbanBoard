@@ -1,8 +1,7 @@
-import { Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
 import type { Tag, Task } from "../../../shared/schemas";
 import { useDeleteTag, useUpdateTag } from "../hooks";
-import { ErrorBanner, HuePalette, Modal, pastelStyle } from "./ui";
+import { CloseFooter, DeleteIconButton, ErrorBanner, HuePalette, Modal, pastelStyle } from "./ui";
 
 /** Lists the project tags to rename, recolor or delete them. */
 export function TagsDialog({
@@ -25,7 +24,7 @@ export function TagsDialog({
   }, [tasks]);
 
   return (
-    <Modal size="sm" title="Tags" onClose={onClose} footer={<><span className="grow" /><button className="btn" onClick={onClose}>Close</button></>}>
+    <Modal size="sm" title="Tags" onClose={onClose} footer={<CloseFooter onClose={onClose} />}>
       {tags.length === 0 && <div className="empty">No tag yet. Add tags from a task.</div>}
       <div className="col gap-4">
         {tags.map((tag) => (
@@ -56,7 +55,6 @@ function TagRow({
 }) {
   const [label, setLabel] = useState(tag.label);
   const [paletteOpen, setPaletteOpen] = useState(false);
-  const [confirmDelete, setConfirmDelete] = useState(false);
 
   const commitLabel = () => {
     const next = label.trim();
@@ -84,14 +82,7 @@ function TagRow({
         <span className="text-secondary text-small" style={{ width: 56, textAlign: "right" }}>
           {usage} {usage === 1 ? "task" : "tasks"}
         </span>
-        <button
-          className={`icon-btn ${confirmDelete ? "text-danger" : ""}`}
-          title={confirmDelete ? "Click again to delete" : "Delete tag"}
-          onClick={() => (confirmDelete ? onDelete() : setConfirmDelete(true))}
-          onBlur={() => setConfirmDelete(false)}
-        >
-          <Trash2 size={14} />
-        </button>
+        <DeleteIconButton title="Delete tag" onDelete={onDelete} />
       </div>
       {paletteOpen && (
         <HuePalette

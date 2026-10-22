@@ -4,6 +4,7 @@ import {
   randomHue,
   type Project,
   type ProjectInput,
+  type ProjectAccess,
   type ProjectMoveInput,
   type ProjectUpdateInput,
 } from "../../shared/schemas.js";
@@ -12,12 +13,18 @@ import { AppError } from "../errors.js";
 import { toObjectId } from "./ids.js";
 import { reorderOperations } from "./ordering.js";
 
-const toProject = (doc: ProjectDoc): Project => ({
+/** Right of the current account on a project, by project id. */
+export type AccessResolver = (projectId: string) => ProjectAccess;
+
+const FULL_ACCESS: AccessResolver = () => "edit";
+
+const toProject = (doc: ProjectDoc, access: ProjectAccess = "edit"): Project => ({
   id: doc._id.toHexString(),
   name: doc.name,
   initials: doc.initials,
   hue: doc.hue,
   archived: doc.archived ?? false,
+  access,
   createdAt: doc.createdAt.toISOString(),
 });
 
@@ -28,9 +35,10 @@ const archivedFilter = (archived: boolean) => ({ archived: archived ? true : { $
 export class ProjectService {
   constructor(private readonly db: Db) {}
 
-  async list(archived = false): Promise<Project[]> {
+  /** Projects the account can see (all of them by default). */
+  async list(archived = false, accessTo: AccessResolver = FULL_ACCESS): Promise<Project[]> {
     const docs = await this.db.projects.find(archivedFilter(archived)).sort(DISPLAY_ORDER).toArray();
-    return docs.map(toProject);
+    return docs.map((doc) => toProject(doc, accessTo(doc._id.toHexString()))).filter((p) => p.access !== "none");
   }
 
   async get(id: string): Promise<Project> {
@@ -82,5 +90,6 @@ export class ProjectService {
     if (!deletedCount) throw AppError.notFound("Project", id);
     await this.db.tasks.deleteMany({ projectId: _id });
     await this.db.tags.deleteMany({ projectId: _id });
+    await this.db.users.updateMany({}, { $unset: { [`access.${id}`]: "" } });
   }
 }

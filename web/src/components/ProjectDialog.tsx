@@ -40,7 +40,7 @@ export function ProjectDialog({
     onSaved(null);
   };
 
-  const preview = { id: "", createdAt: "", archived: false, name, hue, initials: projectInitials(name) || "?" };
+  const preview = { id: "", createdAt: "", archived: false, access: "edit" as const, name, hue, initials: projectInitials(name) || "?" };
 
   return (
     <Modal

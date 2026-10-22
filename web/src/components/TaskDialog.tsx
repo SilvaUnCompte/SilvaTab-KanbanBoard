@@ -16,17 +16,18 @@ import {
 } from "../../../shared/schemas";
 import { useCreateTag, useDeleteTask, useSaveTask, useWindowKeydown, type TaskDraft } from "../hooks";
 import { ChipPicker } from "./ChipPicker";
-import { ErrorBanner, Modal, pastelStyle, TagChip } from "./ui";
+import { CloseFooter, ErrorBanner, Modal, pastelStyle, TagChip } from "./ui";
 
 export const statusColor = (status: TaskStatus) => `var(--status-${status})`;
 
-/** Creates a task, or edits `task` when given. */
+/** Creates a task, or edits `task` when given (only shows it when `readOnly`). */
 export function TaskDialog({
   projectId,
   task,
   tasks,
   tags,
   defaultStatus = "todo",
+  readOnly = false,
   onClose,
 }: {
   projectId: string;
@@ -34,6 +35,7 @@ export function TaskDialog({
   tasks: Task[];
   tags: Tag[];
   defaultStatus?: TaskStatus;
+  readOnly?: boolean;
   onClose: () => void;
 }) {
   const [draft, setDraft] = useState<TaskDraft>({
@@ -44,7 +46,7 @@ export function TaskDialog({
     status: task?.status ?? defaultStatus,
     priority: task?.priority ?? DEFAULT_PRIORITY,
   });
-  const [preview, setPreview] = useState(Boolean(task?.description));
+  const [preview, setPreview] = useState(Boolean(task?.description) || readOnly);
   const [confirmDelete, setConfirmDelete] = useState(false);
   // Incremented on each Ctrl+S save; used as key to replay the "Saved" fade-out.
   const [saveCount, setSaveCount] = useState(0);
@@ -64,7 +66,7 @@ export function TaskDialog({
 
   // Ctrl+S saves an edited task without closing the dialog, instead of the browser's "Save page".
   useWindowKeydown((event) => {
-    if (!task || !(event.ctrlKey || event.metaKey) || event.key.toLowerCase() !== "s") return;
+    if (!task || readOnly || !(event.ctrlKey || event.metaKey) || event.key.toLowerCase() !== "s") return;
     event.preventDefault();
     if (canSave) persist().then(() => setSaveCount((n) => n + 1), () => {});
   });
@@ -79,83 +81,90 @@ export function TaskDialog({
   return (
     <Modal
       size="lg"
-      title={task ? "Edit task" : "New task"}
+      title={task ? (readOnly ? "Task" : "Edit task") : "New task"}
       onClose={onClose}
       footer={
-        <>
-          {task && (
-            <button className="btn btn-danger" onClick={destroy} disabled={remove.isPending}>
-              {confirmDelete ? "Click again to delete" : "Delete"}
+        readOnly ? (
+          <CloseFooter onClose={onClose} />
+        ) : (
+          <>
+            {task && (
+              <button className="btn btn-danger" onClick={destroy} disabled={remove.isPending}>
+                {confirmDelete ? "Click again to delete" : "Delete"}
+              </button>
+            )}
+            <span className="grow" />
+            {saveCount > 0 && <span key={saveCount} className="save-feedback text-small">Saved</span>}
+            <button className="btn" onClick={onClose}>Cancel</button>
+            <button className="btn btn-primary" onClick={submit} disabled={!canSave}>
+              {task ? "Save" : "Create"}
             </button>
-          )}
-          <span className="grow" />
-          {saveCount > 0 && <span key={saveCount} className="save-feedback text-small">Saved</span>}
-          <button className="btn" onClick={onClose}>Cancel</button>
-          <button className="btn btn-primary" onClick={submit} disabled={!canSave}>
-            {task ? "Save" : "Create"}
-          </button>
-        </>
+          </>
+        )
       }
     >
-      <div className="row gap-12">
-        <label className="field grow">
-          <span className="text-label">Title</span>
-          <input className="input" autoFocus value={draft.title} onChange={(e) => set({ title: e.target.value })} />
-        </label>
-        <label className="field" style={{ width: 140 }}>
-          <span className="text-label">Column</span>
-          <select className="input" value={draft.status} onChange={(e) => set({ status: e.target.value as TaskStatus })}>
-            {TASK_STATUSES.map((s) => (
-              <option key={s} value={s}>{STATUS_LABELS[s]}</option>
-            ))}
-          </select>
-        </label>
-      </div>
-
-      <div className="field field-fill">
-        <div className="row">
-          <span className="text-label grow">Description</span>
-          <div className="tabs" role="tablist">
-            <button type="button" className="tab" role="tab" aria-selected={!preview} onClick={() => setPreview(false)}>Write</button>
-            <button type="button" className="tab" role="tab" aria-selected={preview} onClick={() => setPreview(true)}>Preview</button>
-          </div>
+      {/* A disabled fieldset disables every field and picker inside, without changing the layout. */}
+      <fieldset className="contents" disabled={readOnly}>
+        <div className="row gap-12">
+          <label className="field grow">
+            <span className="text-label">Title</span>
+            <input className="input" autoFocus value={draft.title} onChange={(e) => set({ title: e.target.value })} />
+          </label>
+          <label className="field" style={{ width: 140 }}>
+            <span className="text-label">Column</span>
+            <select className="input" value={draft.status} onChange={(e) => set({ status: e.target.value as TaskStatus })}>
+              {TASK_STATUSES.map((s) => (
+                <option key={s} value={s}>{STATUS_LABELS[s]}</option>
+              ))}
+            </select>
+          </label>
         </div>
-        {preview ? (
-          <div className="markdown" onDoubleClick={() => setPreview(false)}>
-            {draft.description ? <Markdown remarkPlugins={[remarkBreaks]}>{draft.description}</Markdown> : <span className="text-secondary">Nothing to preview</span>}
+
+        <div className="field field-fill">
+          <div className="row">
+            <span className="text-label grow">Description</span>
+            <div className="tabs" role="tablist">
+              <button type="button" className="tab" role="tab" aria-selected={!preview} onClick={() => setPreview(false)}>Write</button>
+              <button type="button" className="tab" role="tab" aria-selected={preview} onClick={() => setPreview(true)}>Preview</button>
+            </div>
           </div>
-        ) : (
-          <textarea
-            className="input"
-            rows={10}
-            placeholder="Specs, context, acceptance criteria… (Markdown)"
-            value={draft.description}
-            onChange={(e) => set({ description: e.target.value })}
-          />
-        )}
-      </div>
-
-      <div className="row gap-12 align-end">
-        <div className="grow">
-          <TagsField projectId={projectId} tags={tags} value={draft.tags} onChange={(ids) => set({ tags: ids })} />
+          {preview ? (
+            <div className="markdown" onDoubleClick={() => setPreview(false)}>
+              {draft.description ? <Markdown remarkPlugins={[remarkBreaks]}>{draft.description}</Markdown> : <span className="text-secondary">Nothing to preview</span>}
+            </div>
+          ) : (
+            <textarea
+              className="input"
+              rows={10}
+              placeholder="Specs, context, acceptance criteria… (Markdown)"
+              value={draft.description}
+              onChange={(e) => set({ description: e.target.value })}
+            />
+          )}
         </div>
-        <label className="field" style={{ width: "15%", minWidth: 90 }}>
-          <span className="text-label">Priority</span>
-          <select className="input" value={draft.priority} onChange={(e) => set({ priority: e.target.value as TaskPriority })}>
-            {TASK_PRIORITIES.map((p) => (
-              <option key={p} value={p}>{PRIORITY_LABELS[p]}</option>
-            ))}
-          </select>
-        </label>
-      </div>
 
-      <BlockersField
-        selfId={task?.id}
-        tasks={tasks}
-        byId={byId}
-        value={draft.blockedBy}
-        onChange={(blockedBy) => set({ blockedBy })}
-      />
+        <div className="row gap-12 align-end">
+          <div className="grow">
+            <TagsField projectId={projectId} tags={tags} value={draft.tags} onChange={(ids) => set({ tags: ids })} />
+          </div>
+          <label className="field" style={{ width: "15%", minWidth: 90 }}>
+            <span className="text-label">Priority</span>
+            <select className="input" value={draft.priority} onChange={(e) => set({ priority: e.target.value as TaskPriority })}>
+              {TASK_PRIORITIES.map((p) => (
+                <option key={p} value={p}>{PRIORITY_LABELS[p]}</option>
+              ))}
+            </select>
+          </label>
+        </div>
+
+        <BlockersField
+          selfId={task?.id}
+          tasks={tasks}
+          byId={byId}
+          value={draft.blockedBy}
+          onChange={(blockedBy) => set({ blockedBy })}
+        />
+      </fieldset>
 
       <ErrorBanner error={save.error ?? remove.error} />
     </Modal>

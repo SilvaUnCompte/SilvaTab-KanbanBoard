@@ -2,9 +2,12 @@ import { useMutation, useQuery, useQueryClient, type QueryKey } from "@tanstack/
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   TASK_STATUSES,
+  type Account,
+  type AccountAccessInput,
   type Project,
   type ProjectMoveInput,
   type ProjectUpdateInput,
+  type Session,
   type Task,
   type TagUpdateInput,
   type TaskMoveInput,
@@ -15,6 +18,7 @@ import { api } from "./api";
 
 export const keys = {
   session: ["session"] as const,
+  accounts: ["accounts"] as const,
   projects: ["projects"] as const,
   archivedProjects: ["projects", "archived"] as const,
   tasks: (projectId: string) => ["tasks", projectId] as const,
@@ -57,9 +61,44 @@ function useOptimisticMutation<TData, TArgs>(
 
 export const useSession = () => useQuery({ queryKey: keys.session, queryFn: api.session });
 
-export const useLogin = () => useInvalidatingMutation(api.login, [keys.session]);
+export const useCurrentUser = () => useSession().data?.user ?? null;
 
-export const useLogout = () => useInvalidatingMutation(() => api.logout(), [keys.session]);
+/** Mutation switching the signed-in account: data cached for the previous account is dropped. */
+function useSessionMutation<TArgs>(fn: (args: TArgs) => Promise<Session>) {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: fn,
+    onSuccess: (session) => {
+      client.removeQueries({ predicate: (query) => query.queryKey[0] !== keys.session[0] });
+      client.setQueryData(keys.session, session);
+    },
+  });
+}
+
+export const useLogin = () => useSessionMutation(api.login);
+
+export const useLogout = () => useSessionMutation(() => api.logout());
+
+export const useChangePassword = () => useSessionMutation(api.changePassword);
+
+// ---------- Accounts (admin) ----------
+
+export const useAccounts = () => useQuery({ queryKey: keys.accounts, queryFn: api.listAccounts });
+
+export const useCreateAccount = () => useInvalidatingMutation(api.createAccount, [keys.accounts]);
+
+export const useResetPassword = () => useInvalidatingMutation(api.resetPassword, [keys.accounts]);
+
+export const useDeleteAccount = () => useInvalidatingMutation(api.deleteAccount, [keys.accounts]);
+
+/** Applied right away so that clicking the access toggle several times in a row cycles as expected. */
+export const useSetAccess = () =>
+  useOptimisticMutation<Account[], AccountAccessInput & { id: string }>(
+    keys.accounts,
+    ({ id, ...input }) => api.setAccess(id, input),
+    (accounts, { id, projectId, access }) =>
+      accounts.map((a) => (a.id === id ? { ...a, access: { ...a.access, [projectId]: access } } : a)),
+  );
 
 // ---------- Projects ----------
 

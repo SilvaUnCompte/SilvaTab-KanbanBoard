@@ -36,6 +36,7 @@ export function Board({
   const { data: tasks = [], error } = useTasks(project.id, paused);
   const { data: tags = [] } = useTags(project.id, paused);
   const move = useMoveTask(project.id);
+  const readOnly = project.access !== "edit";
 
   const byId = useMemo(() => new Map(tasks.map((t) => [t.id, t])), [tasks]);
   const openTask = openTaskId ? byId.get(openTaskId) : undefined;
@@ -89,13 +90,16 @@ export function Board({
         <span className="text-secondary text-small">
           {isFiltered ? `${visible.length} / ${tasks.length}` : tasks.length} tasks
         </span>
-        <button className="link-btn text-small" title="Edit tags" onClick={() => setDialog({ kind: "tags" })}>
+        <button className="link-btn text-small" title="Edit tags" disabled={readOnly} onClick={() => setDialog({ kind: "tags" })}>
           <TagIcon size={12} /> {tags.length} tags
         </button>
-        <button className="btn btn-primary" onClick={() => setDialog({ kind: "newTask" })}>
-          <Plus size={15} /> <span className="hide-mobile">New task</span>
-
-        </button>
+        {readOnly ? (
+          <span className="badge" title="You can only read this project">Read only</span>
+        ) : (
+          <button className="btn btn-primary" onClick={() => setDialog({ kind: "newTask" })}>
+            <Plus size={15} /> <span className="hide-mobile">New task</span>
+          </button>
+        )}
       </header>
 
       {(error || move.error) && (
@@ -112,15 +116,17 @@ export function Board({
                 <span className="dot" style={{ background: statusColor(status) }} />
                 <span className="text-label">{STATUS_LABELS[status]}</span>
                 <span className="text-secondary text-small grow">{columns[status].length}</span>
-                <button className="icon-btn" title={`Add to ${STATUS_LABELS[status]}`} onClick={() => setDialog({ kind: "newTask", status })}>
-                  <Plus size={15} />
-                </button>
+                {!readOnly && (
+                  <button className="icon-btn" title={`Add to ${STATUS_LABELS[status]}`} onClick={() => setDialog({ kind: "newTask", status })}>
+                    <Plus size={15} />
+                  </button>
+                )}
               </div>
               <Droppable droppableId={status}>
                 {(provided, snapshot) => (
                   <div ref={provided.innerRef} {...provided.droppableProps} className="column-body" data-over={snapshot.isDraggingOver}>
                     {columns[status].map((task, index) => (
-                      <Draggable key={task.id} draggableId={task.id} index={index}>
+                      <Draggable key={task.id} draggableId={task.id} index={index} isDragDisabled={readOnly}>
                         {(drag, dragSnapshot) => (
                           <article
                             ref={drag.innerRef}
@@ -149,7 +155,15 @@ export function Board({
         <TaskDialog projectId={project.id} defaultStatus={dialog.status} tasks={tasks} tags={tags} onClose={() => setDialog(null)} />
       )}
       {openTask && (
-        <TaskDialog key={openTask.id} projectId={project.id} task={openTask} tasks={tasks} tags={tags} onClose={onCloseTask} />
+        <TaskDialog
+          key={openTask.id}
+          projectId={project.id}
+          task={openTask}
+          tasks={tasks}
+          tags={tags}
+          readOnly={readOnly}
+          onClose={onCloseTask}
+        />
       )}
       {dialog?.kind === "tags" && <TagsDialog projectId={project.id} tags={tags} tasks={tasks} onClose={() => setDialog(null)} />}
     </main>

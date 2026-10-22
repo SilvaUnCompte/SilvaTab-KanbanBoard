@@ -1,13 +1,14 @@
 import { DragDropContext, Draggable, Droppable, type DropResult } from "@hello-pangea/dnd";
-import { Archive, ChevronDown, GripVertical, LogOut, Plus, Settings } from "lucide-react";
+import { Archive, ChevronDown, GripVertical, LogOut, Plus, Settings, Users } from "lucide-react";
 import { useState } from "react";
 import type { Project } from "../../../shared/schemas";
-import { useLogout, useMoveProject } from "../hooks";
+import { useCurrentUser, useLogout, useMoveProject } from "../hooks";
+import { AccountsDialog } from "./AccountsDialog";
 import { ArchiveDialog } from "./ArchiveDialog";
 import { ProjectDialog } from "./ProjectDialog";
 import { ErrorBanner, ProjectAvatar } from "./ui";
 
-type DialogState = { kind: "project"; project?: Project } | { kind: "archive" } | null;
+type DialogState = { kind: "project"; project?: Project } | { kind: "archive" } | { kind: "accounts" } | null;
 
 export function Sidebar({
   projects,
@@ -28,6 +29,9 @@ export function Sidebar({
   const [dialog, setDialog] = useState<DialogState>(null);
   const logout = useLogout();
   const move = useMoveProject();
+  // Only the admin creates, edits and reorders projects.
+  const user = useCurrentUser();
+  const isAdmin = Boolean(user?.isAdmin);
 
   const onDragEnd = ({ draggableId, source, destination }: DropResult) => {
     if (destination && destination.index !== source.index) move.mutate({ id: draggableId, position: destination.index });
@@ -38,16 +42,18 @@ export function Sidebar({
       <header className="sidebar-header row gap-8">
         <span className="brand-mark" />
         <span className="brand grow">Silva's Tab</span>
-        <button className="icon-btn" title="Sign out" onClick={() => logout.mutate(undefined)}>
+        <button className="icon-btn" title={`Sign out (${user?.username})`} onClick={() => logout.mutate(undefined)}>
           <LogOut size={15} />
         </button>
       </header>
 
       <div className="projects-bar row">
         <span className="text-label grow">Projects</span>
-        <button className="icon-btn new-project-btn" title="New project" onClick={() => setDialog({ kind: "project" })}>
-          <Plus size={16} />
-        </button>
+        {isAdmin && (
+          <button className="icon-btn new-project-btn" title="New project" onClick={() => setDialog({ kind: "project" })}>
+            <Plus size={16} />
+          </button>
+        )}
         <button className="icon-btn unfold-btn" title="Show projects" onClick={onOpen}>
           <ChevronDown size={16} />
         </button>
@@ -60,7 +66,7 @@ export function Sidebar({
             {(drop) => (
               <nav ref={drop.innerRef} {...drop.droppableProps} className="scroll-y grow" style={{ padding: "0 6px 12px" }}>
                 {projects.map((project, index) => (
-                  <Draggable key={project.id} draggableId={project.id} index={index}>
+                  <Draggable key={project.id} draggableId={project.id} index={index} isDragDisabled={!isAdmin}>
                     {(drag, snapshot) => (
                       <div
                         ref={drag.innerRef}
@@ -75,18 +81,26 @@ export function Sidebar({
                       >
                         <ProjectAvatar project={project} />
                         <span className="grow truncate">{project.name}</span>
-                        <button
-                          className="icon-btn"
-                          title="Project settings"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setDialog({ kind: "project", project });
-                          }}
-                        >
-                          <Settings size={14} />
-                        </button>
+                        {isAdmin && (
+                          <button
+                            className="icon-btn"
+                            title="Project settings"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setDialog({ kind: "project", project });
+                            }}
+                          >
+                            <Settings size={14} />
+                          </button>
+                        )}
                         {/* Only the handle starts a drag, so swiping the list elsewhere scrolls it (touch screens). */}
-                        <span {...drag.dragHandleProps} className="drag-handle" title="Drag to reorder" aria-label="Drag to reorder">
+                        <span
+                          {...drag.dragHandleProps}
+                          className="drag-handle"
+                          title="Drag to reorder"
+                          aria-label="Drag to reorder"
+                          hidden={!isAdmin}
+                        >
                           <GripVertical size={14} />
                         </span>
                       </div>
@@ -106,10 +120,17 @@ export function Sidebar({
           </div>
         )}
 
-        <footer className="sidebar-footer row">
-          <button className="link-btn text-small" onClick={() => setDialog({ kind: "archive" })}>
-            <Archive size={13} /> Archive
-          </button>
+        <footer className="sidebar-footer row gap-12">
+          {isAdmin && (
+            <>
+              <button className="link-btn text-small" onClick={() => setDialog({ kind: "archive" })}>
+                <Archive size={13} /> Archive
+              </button>
+              <button className="link-btn text-small" onClick={() => setDialog({ kind: "accounts" })}>
+                <Users size={13} /> Accounts
+              </button>
+            </>
+          )}
           {/* The brand header is hidden on phones, so sign out moves here. */}
           <button className="link-btn text-small show-mobile" onClick={() => logout.mutate(undefined)}>
             <LogOut size={13} /> Sign out
@@ -127,6 +148,7 @@ export function Sidebar({
           }}
         />
       )}
+      {dialog?.kind === "accounts" && <AccountsDialog onClose={() => setDialog(null)} />}
       {dialog?.kind === "project" && (
         <ProjectDialog
           project={dialog.project}

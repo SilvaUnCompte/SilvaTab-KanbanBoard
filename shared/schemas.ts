@@ -63,6 +63,8 @@ export interface Project {
   initials: string;
   hue: number;
   archived: boolean;
+  /** What the signed-in account may do with the project ("edit" for the admin and MCP). */
+  access: ProjectAccess;
   createdAt: string;
 }
 
@@ -83,8 +85,9 @@ export interface Tag {
   hue: number;
 }
 
-/** Case-insensitive identity of a tag label, used for uniqueness and search. */
-export const tagKey = (label: string) => label.trim().toLowerCase();
+/** Case-insensitive identity of a label or username, used for uniqueness and search. */
+export const caseKey = (value: string) => value.trim().toLowerCase();
+export const tagKey = caseKey;
 
 // ---------- Tasks ----------
 
@@ -135,7 +138,60 @@ export interface Task {
   updatedAt: string;
 }
 
-export const LoginInput = z.object({ password: z.string().min(1) });
+// ---------- Accounts ----------
+
+/** Ordered from the weakest to the strongest right. */
+export const PROJECT_ACCESSES = ["none", "read", "edit"] as const;
+export const ProjectAccess = z.enum(PROJECT_ACCESSES);
+export type ProjectAccess = z.infer<typeof ProjectAccess>;
+
+export const ACCESS_LABELS: Record<ProjectAccess, string> = {
+  none: "Hidden",
+  read: "Read only",
+  edit: "Can edit",
+};
+
+/** True when `access` grants at least `needed`. */
+export const allows = (access: ProjectAccess, needed: ProjectAccess) =>
+  PROJECT_ACCESSES.indexOf(access) >= PROJECT_ACCESSES.indexOf(needed);
+
+const Username = z.string().trim().min(1).max(40);
+
+export const LoginInput = z.object({ username: Username, password: z.string().min(1) });
+export type LoginInput = z.infer<typeof LoginInput>;
+
+export const PasswordChangeInput = z.object({ password: z.string().min(8, "Use at least 8 characters").max(200) });
+export type PasswordChangeInput = z.infer<typeof PasswordChangeInput>;
+
+export const AccountCreateInput = z.object({ username: Username });
+export type AccountCreateInput = z.infer<typeof AccountCreateInput>;
+
+export const AccountAccessInput = z.object({ projectId: ObjectIdString, access: ProjectAccess });
+export type AccountAccessInput = z.infer<typeof AccountAccessInput>;
+
+export interface SessionUser {
+  username: string;
+  isAdmin: boolean;
+  /** Set on new and reset accounts: nothing else is allowed until the user picks a password. */
+  mustChangePassword: boolean;
+}
+
+export interface Session {
+  user: SessionUser | null;
+}
+
+export interface Account {
+  id: string;
+  username: string;
+  mustChangePassword: boolean;
+  /** Projects the account can see, by id; missing projects are hidden. */
+  access: Record<string, ProjectAccess>;
+}
+
+/** Returned once, when the password is generated: only its hash is stored. */
+export interface AccountWithPassword extends Account {
+  password: string;
+}
 
 // ---------- Helpers ----------
 

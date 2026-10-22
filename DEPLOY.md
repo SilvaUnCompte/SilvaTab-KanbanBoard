@@ -230,7 +230,7 @@ sudo git clean -fd      # removes leftovers of old uploads; .env is ignored, so 
 | Restart | `sudo docker compose restart app` |
 | Stop | `sudo docker compose down` |
 | Rotate MCP token | edit `.env`, then `sudo docker compose up -d` (update Claude's connector) |
-| Change UI password | edit `.env`, then `sudo docker compose up -d` (logs everyone out) |
+| Change admin password | edit `SILVA_PASSWORD` in `.env`, then `sudo docker compose up -d` (logs everyone out) |
 
 ## Known caveat
 

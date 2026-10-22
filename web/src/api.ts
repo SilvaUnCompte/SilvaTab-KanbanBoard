@@ -1,8 +1,14 @@
 import type {
+  Account,
+  AccountAccessInput,
+  AccountCreateInput,
+  AccountWithPassword,
+  LoginInput,
   Project,
   ProjectInput,
   ProjectMoveInput,
   ProjectUpdateInput,
+  Session,
   Tag,
   TagCreateInput,
   TagUpdateInput,
@@ -34,12 +40,17 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
   return data as T;
 }
 
-type Session = { authenticated: boolean };
-
 export const api = {
   session: () => request<Session>("GET", "/session"),
-  login: (password: string) => request<Session>("POST", "/login", { password }),
+  login: (input: LoginInput) => request<Session>("POST", "/login", input),
   logout: () => request<Session>("POST", "/logout"),
+  changePassword: (password: string) => request<Session>("POST", "/password", { password }),
+
+  listAccounts: () => request<Account[]>("GET", "/accounts"),
+  createAccount: (input: AccountCreateInput) => request<AccountWithPassword>("POST", "/accounts", input),
+  resetPassword: (id: string) => request<AccountWithPassword>("POST", `/accounts/${id}/password`),
+  setAccess: (id: string, input: AccountAccessInput) => request<Account>("PUT", `/accounts/${id}/access`, input),
+  deleteAccount: (id: string) => request<void>("DELETE", `/accounts/${id}`),
 
   listProjects: (archived = false) => request<Project[]>("GET", `/projects${archived ? "?archived=true" : ""}`),
   createProject: (input: ProjectInput) => request<Project>("POST", "/projects", input),

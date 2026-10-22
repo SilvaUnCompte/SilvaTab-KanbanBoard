@@ -1,5 +1,5 @@
 import { MongoClient, type ObjectId } from "mongodb";
-import type { TaskPriority, TaskStatus } from "../shared/schemas.js";
+import type { ProjectAccess, TaskPriority, TaskStatus } from "../shared/schemas.js";
 
 export interface ProjectDoc {
   _id: ObjectId;
@@ -39,6 +39,20 @@ export interface TagDoc {
   createdAt: Date;
 }
 
+export interface UserDoc {
+  _id: ObjectId;
+  username: string;
+  /** Lower-cased username, unique. */
+  key: string;
+  passwordHash: string;
+  mustChangePassword: boolean;
+  /** Read or edit right by project id; missing projects are hidden. */
+  access: Record<string, Exclude<ProjectAccess, "none">>;
+  /** Sessions opened before this date are rejected. */
+  credentialsChangedAt: Date;
+  createdAt: Date;
+}
+
 export async function connectDb(url: string, dbName: string) {
   const client = new MongoClient(url);
   await client.connect();
@@ -46,10 +60,12 @@ export async function connectDb(url: string, dbName: string) {
   const projects = db.collection<ProjectDoc>("projects");
   const tasks = db.collection<TaskDoc>("tasks");
   const tags = db.collection<TagDoc>("tags");
+  const users = db.collection<UserDoc>("users");
   await projects.createIndex({ position: 1, createdAt: 1 });
   await tasks.createIndex({ projectId: 1, status: 1, position: 1 });
   await tags.createIndex({ projectId: 1, key: 1 }, { unique: true });
-  return { client, projects, tasks, tags };
+  await users.createIndex({ key: 1 }, { unique: true });
+  return { client, projects, tasks, tags, users };
 }
 
 export type Db = Awaited<ReturnType<typeof connectDb>>;

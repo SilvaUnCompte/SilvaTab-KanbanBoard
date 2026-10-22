@@ -1,5 +1,5 @@
-import { ChevronDown, ChevronUp, Equal, Flame, X, type LucideIcon } from "lucide-react";
-import type { CSSProperties, ReactNode } from "react";
+import { ChevronDown, ChevronUp, Equal, Flame, Trash2, X, type LucideIcon } from "lucide-react";
+import { useState, type CSSProperties, type ReactNode } from "react";
 import { PALETTE_HUES, PRIORITY_LABELS, type Project, type Tag, type TaskPriority } from "../../../shared/schemas";
 import { useWindowKeydown } from "../hooks";
 
@@ -78,6 +78,16 @@ export function ProjectAvatar({ project, large = false }: { project: Project; la
   );
 }
 
+/** Modal footer with a single Close button on the right. */
+export function CloseFooter({ onClose }: { onClose: () => void }) {
+  return (
+    <>
+      <span className="grow" />
+      <button className="btn" onClick={onClose}>Close</button>
+    </>
+  );
+}
+
 export function ErrorBanner({ error }: { error: unknown }) {
   if (!error) return null;
   return <div className="banner">{error instanceof Error ? error.message : String(error)}</div>;
@@ -100,5 +110,20 @@ export function PriorityIcon({ priority, className = "" }: { priority: TaskPrior
     <span className={`priority ${className}`} style={{ color: `var(--priority-${priority})` }} title={label} aria-label={label}>
       <Icon size={14} />
     </span>
+  );
+}
+
+/** Trash button asking for a second click before calling `onDelete`. */
+export function DeleteIconButton({ title, onDelete }: { title: string; onDelete: () => void }) {
+  const [confirm, setConfirm] = useState(false);
+  return (
+    <button
+      className={`icon-btn ${confirm ? "text-danger" : ""}`}
+      title={confirm ? "Click again to delete" : title}
+      onClick={() => (confirm ? onDelete() : setConfirm(true))}
+      onBlur={() => setConfirm(false)}
+    >
+      <Trash2 size={14} />
+    </button>
   );
 }
